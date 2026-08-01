@@ -4,7 +4,7 @@
 
 // --- 配置 ---
 // 🔧 修改这里：你们的纪念日（在一起的第一天）
-const ANNIVERSARY_DATE = new Date('2024-02-14T00:00:00');
+const ANNIVERSARY_DATE = new Date('2026-06-28T00:00:00');
 
 // --- DOM 就绪 ---
 document.addEventListener('DOMContentLoaded', () => {
