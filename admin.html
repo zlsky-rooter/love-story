@@ -169,8 +169,12 @@
 
     function switchTab(tab) {
       currentTab = tab;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        if ((tab === 'story' && t.textContent.includes('故事')) || (tab === 'note' && t.textContent.includes('笔记'))) {
+          t.classList.add('active');
+        }
+      });
       document.getElementById('storyEditor').style.display = tab === 'story' ? '' : 'none';
       document.getElementById('noteEditor').style.display = tab === 'note' ? '' : 'none';
       if (tab === 'story') loadStories();
