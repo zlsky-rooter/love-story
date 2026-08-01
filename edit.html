@@ -42,6 +42,21 @@ small{color:#999;font-size:12px}
     <div id="sMsg" class="msg"></div>
   </div>
 
+  <h2>📸 添加照片</h2>
+  <div class="card">
+    <input type="file" id="pFile" accept="image/*" onchange="previewPhoto()" style="padding:8px">
+    <img id="pPreview" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin:8px 0">
+    <select id="pCategory" style="width:100%;padding:10px;border:1px solid #f0e0e0;border-radius:10px;font-size:16px;margin:6px 0;font-family:inherit;background:#fff">
+      <option value="date">💕 约会</option>
+      <option value="travel">✈️ 旅行</option>
+      <option value="daily">🌸 日常</option>
+      <option value="special">🎉 特别日子</option>
+    </select>
+    <input type="text" id="pCaption" placeholder="照片描述，如 第一次约会">
+    <button onclick="addPhoto()">➕ 上传照片</button>
+    <div id="pMsg" class="msg"></div>
+  </div>
+
   <h2>💌 写恋爱笔记</h2>
   <div class="card">
     <input type="text" id="nDate" placeholder="日期，如 2026年7月1日">
@@ -87,6 +102,68 @@ async function commitFile(path, content, msg) {
   var body = { message: msg, content: btoa(unescape(encodeURIComponent(content))), branch: 'main' };
   if (sha) body.sha = sha;
   return ghAPI(path, 'PUT', body);
+}
+
+async function commitImage(path, base64data, msg) {
+  var sha = null;
+  try { var f = await ghAPI(path); sha = f.sha; } catch(e) {}
+  // Remove data:image/...;base64, prefix
+  var clean = base64data.replace(/^data:image\/\w+;base64,/, '');
+  var body = { message: msg, content: clean, branch: 'main' };
+  if (sha) body.sha = sha;
+  return ghAPI(path, 'PUT', body);
+}
+
+function previewPhoto() {
+  var file = document.getElementById('pFile').files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('pPreview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function addPhoto() {
+  var file = document.getElementById('pFile').files[0];
+  var caption = document.getElementById('pCaption').value.trim();
+  var category = document.getElementById('pCategory').value;
+  if (!file) return show('pMsg', false, '请选择一张照片');
+  if (!caption) return show('pMsg', false, '请填写照片描述');
+
+  var fileName = 'photo_' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+
+  try {
+    var reader = new FileReader();
+    var base64 = await new Promise(function(resolve) {
+      reader.onload = function(e) { resolve(e.target.result); };
+      reader.readAsDataURL(file);
+    });
+
+    // Remove placeholder items if this is the first photo
+    var gData = await ghAPI('gallery.html');
+    var gHtml = decodeURIComponent(atob(gData.content).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
+
+    // Replace placeholder items on first upload
+    if (gHtml.indexOf('把你们的合照') !== -1) {
+      gHtml = gHtml.replace(/<div class="gallery-item" data-category="\w+" style="background:[\s\S]*?<\/div>/g, '');
+    }
+
+    var galleryItem = '\n    <div class="gallery-item" data-category="' + category + '">\n      <img src="images/' + fileName + '" alt="' + caption + '" loading="lazy">\n      <div class="gallery-caption">📸 ' + caption + '</div>\n    </div>';
+
+    gHtml = gHtml.replace('<!-- 模板：复制这个块来添加新照片 -->', '<!-- 模板：复制这个块来添加新照片 -->' + galleryItem + '\n');
+
+    await commitImage('images/' + fileName, base64, '📸 ' + caption);
+    await commitFile('gallery.html', gHtml, '📸 添加照片: ' + caption);
+    show('pMsg', true, '✅ 照片已上传！30秒后网站更新');
+    document.getElementById('pFile').value = '';
+    document.getElementById('pCaption').value = '';
+    document.getElementById('pPreview').style.display = 'none';
+  } catch(e) {
+    show('pMsg', false, '❌ ' + e.message);
+  }
 }
 
 function show(id, ok, text) {
