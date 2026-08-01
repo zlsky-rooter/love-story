@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编辑后台 - Love Story</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:#fff5f5;color:#4a3548;padding:16px;max-width:600px;margin:0 auto}
+h1{text-align:center;color:#e91e63;margin:16px 0}
+h2{color:#e91e63;margin:16px 0 8px}
+input,textarea{width:100%;padding:10px;border:1px solid #f0e0e0;border-radius:10px;font-size:16px;margin:6px 0;font-family:inherit}
+textarea{min-height:100px;resize:vertical}
+button{width:100%;padding:14px;background:linear-gradient(135deg,#e91e63,#ff6b81);color:#fff;border:none;border-radius:25px;font-size:16px;font-weight:600;margin:10px 0;cursor:pointer}
+button:active{opacity:.8}
+.card{background:#fff;border-radius:14px;padding:20px;margin:12px 0;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.msg{padding:12px;border-radius:10px;text-align:center;margin:8px 0;display:none}
+.msg-ok{background:#e8f5e9;color:#2e7d32}
+.msg-err{background:#ffebee;color:#c62828}
+small{color:#999;font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>💕 网站编辑后台</h1>
+
+<div class="card" id="loginBox">
+  <h2>🔑 输入 Token</h2>
+  <input type="password" id="tokenInput" placeholder="粘贴 GitHub Token">
+  <small>👉 <a href="https://github.com/settings/tokens/new?scopes=repo&description=love" target="_blank">点此创建 Token</a>，勾选 repo，生成后粘贴</small>
+  <button onclick="doLogin()">登录</button>
+</div>
+
+<div id="editorBox" style="display:none">
+
+  <h2>📖 添加故事时刻</h2>
+  <div class="card">
+    <input type="text" id="sDate" placeholder="日期，如 2026年6月28日">
+    <input type="text" id="sTitle" placeholder="标题，如 我们在一起了">
+    <textarea id="sBody" placeholder="写一段描述..."></textarea>
+    <button onclick="addStory()">➕ 发布故事</button>
+    <div id="sMsg" class="msg"></div>
+  </div>
+
+  <h2>💌 写恋爱笔记</h2>
+  <div class="card">
+    <input type="text" id="nDate" placeholder="日期，如 2026年7月1日">
+    <input type="text" id="nTitle" placeholder="标题，如 第一次约会">
+    <input type="text" id="nEmoji" placeholder="封面 emoji" value="💌" maxlength="2">
+    <textarea id="nBody" placeholder="写下你想说的话..."></textarea>
+    <button onclick="addNote()">➕ 发布笔记</button>
+    <div id="nMsg" class="msg"></div>
+  </div>
+
+</div>
+
+<script>
+var TOKEN = localStorage.gh_token || '';
+var REPO = 'zlsky-rooter/love-story';
+
+if (TOKEN) { showEditor(); }
+
+function doLogin() {
+  var t = document.getElementById('tokenInput').value.trim();
+  if (!t) return alert('请粘贴 Token');
+  TOKEN = t;
+  localStorage.gh_token = t;
+  showEditor();
+}
+
+function showEditor() {
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('editorBox').style.display = 'block';
+}
+
+async function ghAPI(path, method, body) {
+  var opts = { method: method || 'GET', headers: { Authorization: 'token ' + TOKEN } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  var res = await fetch('https://api.github.com/repos/' + REPO + '/contents/' + path, opts);
+  if (!res.ok) { var err = await res.json(); throw new Error(err.message || '请求失败'); }
+  return res.json();
+}
+
+async function commitFile(path, content, msg) {
+  var sha = null;
+  try { var f = await ghAPI(path); sha = f.sha; } catch(e) {}
+  var body = { message: msg, content: btoa(unescape(encodeURIComponent(content))), branch: 'main' };
+  if (sha) body.sha = sha;
+  return ghAPI(path, 'PUT', body);
+}
+
+function show(id, ok, text) {
+  var el = document.getElementById(id);
+  el.style.display = 'block';
+  el.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
+  el.textContent = text;
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+async function addStory() {
+  var date = document.getElementById('sDate').value.trim();
+  var title = document.getElementById('sTitle').value.trim();
+  var body = document.getElementById('sBody').value.trim();
+  if (!date || !title || !body) return show('sMsg', false, '请填写完整');
+
+  var item = '\n    <div class="timeline-item">\n      <div class="timeline-dot"></div>\n      <div class="timeline-content">\n        <div class="timeline-date">' + date + '</div>\n        <h3>' + title + '</h3>\n        <p>' + body + '</p>\n      </div>\n    </div>';
+
+  try {
+    var data = await ghAPI('story.html');
+    var html = decodeURIComponent(atob(data.content).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
+    html = html.replace('<!-- 🔧 在这里添加新的故事时刻 -->', item + '\n    <!-- 🔧 在这里添加新的故事时刻 -->');
+    await commitFile('story.html', html, '📖 ' + title);
+    show('sMsg', true, '✅ 故事已发布！30秒后网站更新');
+    document.getElementById('sDate').value = '';
+    document.getElementById('sTitle').value = '';
+    document.getElementById('sBody').value = '';
+  } catch(e) {
+    show('sMsg', false, '❌ ' + e.message);
+  }
+}
+
+async function addNote() {
+  var date = document.getElementById('nDate').value.trim();
+  var title = document.getElementById('nTitle').value.trim();
+  var emoji = document.getElementById('nEmoji').value.trim() || '💌';
+  var body = document.getElementById('nBody').value.trim();
+  if (!date || !title || !body) return show('nMsg', false, '请填写完整');
+
+  var slug = title.replace(/[^a-zA-Z0-9一-龥]/g, '-');
+  var summary = body.split('\n')[0].substring(0, 80);
+
+  var noteHTML = '<!DOCTYPE html>\n<html lang="zh-CN" data-theme="light">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>' + title + ' - Love Story</title>\n  <link rel="icon" href="data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><text y=\'.9em\' font-size=\'90\'>💕</text></svg>">\n  <link rel="stylesheet" href="../css/style.css">\n</head>\n<body>\n  <div id="hearts-container" class="hearts-container"></div>\n  <nav class="navbar">\n    <div class="navbar-inner">\n      <a href="../index.html" class="nav-brand"><span class="heart">💕</span> Love Story</a>\n      <button class="nav-toggle" aria-label="菜单">☰</button>\n      <ul class="nav-links">\n        <li><a href="../index.html">🏠 首页</a></li>\n        <li><a href="../story.html">📖 我们的故事</a></li>\n        <li><a href="../gallery.html">📸 照片墙</a></li>\n        <li><a href="../notes.html">💌 恋爱笔记</a></li>\n        <li><button class="theme-btn"><span class="theme-icon">🌙</span></button></li>\n      </ul>\n    </div>\n  </nav>\n  <article class="article">\n    <a href="../notes.html" class="article-back">← 返回笔记列表</a>\n    <header class="article-header">\n      <h1>' + title + '</h1>\n      <div class="article-date">' + date + '</div>\n    </header>\n    <div class="article-body">\n' + body.split('\n').map(function(l) { return l.trim() ? '<p>' + l + '</p>' : ''; }).join('\n') + '\n    </div>\n  </article>\n  <footer class="footer"><p>Made with <span class="heart">💕</span> for the one I love</p></footer>\n  <script src="../js/main.js"><\/script>\n</body>\n</html>';
+
+  var card = '\n    <article class="note-card">\n      <div class="note-card-cover" style="background: linear-gradient(135deg, #ffd1d1, #f48fb1); display: flex; align-items: center; justify-content: center; font-size: 3rem;">' + emoji + '</div>\n      <div class="note-card-body">\n        <div class="note-card-date">' + date + '</div>\n        <h3>' + title + '</h3>\n        <p>' + summary + '...</p>\n        <a href="notes/' + slug + '.html" class="read-more">阅读全文 →</a>\n      </div>\n    </article>';
+
+  try {
+    await commitFile('notes/' + slug + '.html', noteHTML, '💌 ' + title);
+    var data = await ghAPI('notes.html');
+    var html = decodeURIComponent(atob(data.content).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
+    html = html.replace('<!-- 🔧 在这里添加新的笔记卡片 -->', card + '\n    <!-- 🔧 在这里添加新的笔记卡片 -->');
+    await commitFile('notes.html', html, '💌 更新笔记列表: ' + title);
+    show('nMsg', true, '✅ 笔记已发布！30秒后网站更新');
+    document.getElementById('nDate').value = '';
+    document.getElementById('nTitle').value = '';
+    document.getElementById('nBody').value = '';
+  } catch(e) {
+    show('nMsg', false, '❌ ' + e.message);
+  }
+}
+</script>
+</body>
+</html>
