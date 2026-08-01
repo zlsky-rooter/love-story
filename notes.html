@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>恋爱笔记 - Love Story</title>
+  <meta name="description" content="恋爱笔记 - 写给你的每一句话">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💕</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="hearts-container" class="hearts-container"></div>
+
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="nav-brand">
+        <span class="heart">💕</span> Love Story
+      </a>
+      <button class="nav-toggle" aria-label="菜单">☰</button>
+      <ul class="nav-links">
+        <li><a href="index.html">🏠 首页</a></li>
+        <li><a href="story.html">📖 我们的故事</a></li>
+        <li><a href="gallery.html">📸 照片墙</a></li>
+        <li><a href="notes.html" class="active">💌 恋爱笔记</a></li>
+        <li>
+          <button class="theme-btn" aria-label="切换主题">
+            <span class="theme-icon">🌙</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="page-header">
+    <h1>💌 恋爱笔记</h1>
+    <p>想对你说的话，都写在这里</p>
+  </section>
+
+  <!--
+    🔧 使用说明：
+    每篇笔记是一个 .note-card。
+    复制模板块来添加新文章。
+    点击 read-more 链接到 notes/ 文件夹下的详情页。
+  -->
+  <div class="notes-grid container">
+
+    <!-- 模板：复制这个块来添加新笔记 -->
+    <article class="note-card">
+      <div class="note-card-cover" style="background: linear-gradient(135deg, #ffd1d1, #f48fb1); display: flex; align-items: center; justify-content: center; font-size: 3rem;">💌</div>
+      <div class="note-card-body">
+        <div class="note-card-date">2024年2月14日</div>
+        <h3>写给亲爱的你</h3>
+        <p>从认识你的那一天起，我的世界就变得不一样了。遇见你，是我这辈子最幸运的事...</p>
+        <a href="notes/first-letter.html" class="read-more">阅读全文 →</a>
+      </div>
+    </article>
+
+    <article class="note-card">
+      <div class="note-card-cover" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🌷</div>
+      <div class="note-card-body">
+        <div class="note-card-date">2024年春天</div>
+        <h3>春天和你一起来了</h3>
+        <p>那天阳光很好，你穿着白色的裙子站在花丛里，我按下快门的瞬间，就知道这张照片会是我一生的珍藏...</p>
+        <a href="notes/spring.html" class="read-more">阅读全文 →</a>
+      </div>
+    </article>
+
+  </div>
+
+  <footer class="footer">
+    <p>Made with <span class="heart">💕</span> for the one I love</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
